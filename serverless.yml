@@ -1,0 +1,41 @@
+service: lambda-layer-demo
+
+plugins:
+  - serverless-offline
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: dev
+  region: ap-southeast-1
+
+layers:
+  myLayer:
+    path: otp-layer
+
+functions:
+  send-otp:
+    handler: dist/main.handler
+    events:
+      - http:
+          path: send-otp
+          method: get
+    layers:
+      - arn:aws:lambda:ap-southeast-1:412937381715:layer:otp-layer:1
+      # - {Ref: MyLayerLambdaLayer}
+
+  verify-otp:
+    handler: dist/main.handler
+    events:
+      - http:
+          path: verify-otp
+          method: get
+# resources:
+#   Resources:
+#     MyLayerLambdaLayer:
+#       Type: AWS::Lambda::LayerVersion
+#       Properties:
+#         LayerName: otp-layer
+#         Description: OTP Lambda Layer
+#         # ContentUri: ./otp-layer
+#         CompatibleRuntimes:
+#           - nodejs18.x
