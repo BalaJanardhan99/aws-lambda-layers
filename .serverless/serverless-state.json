@@ -1,0 +1,408 @@
+{
+  "service": {
+    "service": "my-service",
+    "serviceObject": {
+      "name": "my-service"
+    },
+    "provider": {
+      "name": "aws",
+      "runtime": "nodejs14.x",
+      "region": "us-east-1",
+      "deploymentBucket": "aws-layers-test",
+      "stage": "dev",
+      "versionFunctions": true,
+      "deploymentBucketObject": {
+        "name": "aws-layers-test"
+      },
+      "compiledCloudFormationTemplate": {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "The AWS CloudFormation template for this Serverless application",
+        "Resources": {
+          "FirstFunctionLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/my-service-dev-firstFunction"
+            }
+          },
+          "SecondFunctionLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/my-service-dev-secondFunction"
+            }
+          },
+          "IamRoleLambdaExecution": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+              "AssumeRolePolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Principal": {
+                      "Service": [
+                        "lambda.amazonaws.com"
+                      ]
+                    },
+                    "Action": [
+                      "sts:AssumeRole"
+                    ]
+                  }
+                ]
+              },
+              "Policies": [
+                {
+                  "PolicyName": {
+                    "Fn::Join": [
+                      "-",
+                      [
+                        "my-service",
+                        "dev",
+                        "lambda"
+                      ]
+                    ]
+                  },
+                  "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:CreateLogStream",
+                          "logs:CreateLogGroup",
+                          "logs:TagResource"
+                        ],
+                        "Resource": [
+                          {
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/my-service-dev*:*"
+                          }
+                        ]
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:PutLogEvents"
+                        ],
+                        "Resource": [
+                          {
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/my-service-dev*:*:*"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ],
+              "Path": "/",
+              "RoleName": {
+                "Fn::Join": [
+                  "-",
+                  [
+                    "my-service",
+                    "dev",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    "lambdaRole"
+                  ]
+                ]
+              }
+            }
+          },
+          "FirstLayerLambdaLayer": {
+            "Type": "AWS::Lambda::LayerVersion",
+            "Properties": {
+              "Content": {
+                "S3Bucket": "aws-layers-test",
+                "S3Key": "serverless/my-service/dev/1687862948130-2023-06-27T10:49:08.130Z/firstLayer.zip"
+              },
+              "LayerName": "firstLayer"
+            }
+          },
+          "SecondLayerLambdaLayer": {
+            "Type": "AWS::Lambda::LayerVersion",
+            "Properties": {
+              "Content": {
+                "S3Bucket": "aws-layers-test",
+                "S3Key": "serverless/my-service/dev/1687862948130-2023-06-27T10:49:08.130Z/secondLayer.zip"
+              },
+              "LayerName": "secondLayer"
+            }
+          },
+          "FirstFunctionLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "aws-layers-test",
+                "S3Key": "serverless/my-service/dev/1687865246548-2023-06-27T11:27:26.548Z/my-service.zip"
+              },
+              "Handler": "firstFunction/handler.firstFunction",
+              "Runtime": "nodejs14.x",
+              "FunctionName": "my-service-dev-firstFunction",
+              "MemorySize": 1024,
+              "Timeout": 6,
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              },
+              "Layers": [
+                {
+                  "Ref": "FirstLayerLambdaLayer"
+                },
+                "arn:aws:lambda:us-east-1:412937381715:layer:my-service-dev-nodejs-default:12"
+              ]
+            },
+            "DependsOn": [
+              "FirstFunctionLogGroup"
+            ]
+          },
+          "SecondFunctionLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "aws-layers-test",
+                "S3Key": "serverless/my-service/dev/1687865246548-2023-06-27T11:27:26.548Z/my-service.zip"
+              },
+              "Handler": "secondFunction/handler.secondFunction",
+              "Runtime": "nodejs14.x",
+              "FunctionName": "my-service-dev-secondFunction",
+              "MemorySize": 1024,
+              "Timeout": 6,
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              },
+              "Layers": [
+                {
+                  "Ref": "SecondLayerLambdaLayer"
+                },
+                "arn:aws:lambda:us-east-1:412937381715:layer:my-service-dev-nodejs-default:12"
+              ]
+            },
+            "DependsOn": [
+              "SecondFunctionLogGroup"
+            ]
+          },
+          "FirstFunctionLambdaVersion1m5866sLEECQp1PAs20GtKjZyEsSZCq6Arwq4o9E": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "FirstFunctionLambdaFunction"
+              },
+              "CodeSha256": "nbijci6M4ozFjcK1OZZbPHdmsX77hX9q9Q61ut6PyR0="
+            }
+          },
+          "SecondFunctionLambdaVersionkRc2hM70YA0fwk5HZswbUj9dZE7MykCQ5h6CkTkE": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "SecondFunctionLambdaFunction"
+              },
+              "CodeSha256": "nbijci6M4ozFjcK1OZZbPHdmsX77hX9q9Q61ut6PyR0="
+            }
+          }
+        },
+        "Outputs": {
+          "ServerlessDeploymentBucketName": {
+            "Value": "aws-layers-test",
+            "Export": {
+              "Name": "sls-my-service-dev-ServerlessDeploymentBucketName"
+            }
+          },
+          "FirstLayerLambdaLayerQualifiedArn": {
+            "Description": "Current Lambda layer version",
+            "Value": {
+              "Ref": "FirstLayerLambdaLayer"
+            },
+            "Export": {
+              "Name": "sls-my-service-dev-FirstLayerLambdaLayerQualifiedArn"
+            }
+          },
+          "FirstLayerLambdaLayerHash": {
+            "Description": "Current Lambda layer hash",
+            "Value": "965735c2669c24ca9aaf4605285ecce4d91831e1",
+            "Export": {
+              "Name": "sls-my-service-dev-FirstLayerLambdaLayerHash"
+            }
+          },
+          "FirstLayerLambdaLayerS3Key": {
+            "Description": "Current Lambda layer S3Key",
+            "Value": "serverless/my-service/dev/1687862948130-2023-06-27T10:49:08.130Z/firstLayer.zip",
+            "Export": {
+              "Name": "sls-my-service-dev-FirstLayerLambdaLayerS3Key"
+            }
+          },
+          "SecondLayerLambdaLayerQualifiedArn": {
+            "Description": "Current Lambda layer version",
+            "Value": {
+              "Ref": "SecondLayerLambdaLayer"
+            },
+            "Export": {
+              "Name": "sls-my-service-dev-SecondLayerLambdaLayerQualifiedArn"
+            }
+          },
+          "SecondLayerLambdaLayerHash": {
+            "Description": "Current Lambda layer hash",
+            "Value": "c51daed4a8989733a760d1d8d28707ff0a4400e2",
+            "Export": {
+              "Name": "sls-my-service-dev-SecondLayerLambdaLayerHash"
+            }
+          },
+          "SecondLayerLambdaLayerS3Key": {
+            "Description": "Current Lambda layer S3Key",
+            "Value": "serverless/my-service/dev/1687862948130-2023-06-27T10:49:08.130Z/secondLayer.zip",
+            "Export": {
+              "Name": "sls-my-service-dev-SecondLayerLambdaLayerS3Key"
+            }
+          },
+          "FirstFunctionLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "FirstFunctionLambdaVersion1m5866sLEECQp1PAs20GtKjZyEsSZCq6Arwq4o9E"
+            },
+            "Export": {
+              "Name": "sls-my-service-dev-FirstFunctionLambdaFunctionQualifiedArn"
+            }
+          },
+          "SecondFunctionLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "SecondFunctionLambdaVersionkRc2hM70YA0fwk5HZswbUj9dZE7MykCQ5h6CkTkE"
+            },
+            "Export": {
+              "Name": "sls-my-service-dev-SecondFunctionLambdaFunctionQualifiedArn"
+            }
+          },
+          "MyDashserviceDashdevDashnodejsDashdefaultLambdaLayerQualifiedArn": {
+            "Value": "arn:aws:lambda:us-east-1:412937381715:layer:my-service-dev-nodejs-default:12",
+            "Export": {
+              "Name": "MyDashserviceDashdevDashnodejsDashdefaultLambdaLayerQualifiedArn"
+            }
+          }
+        }
+      },
+      "vpc": {}
+    },
+    "custom": {
+      "esbuild": {
+        "bundle": true,
+        "minify": false,
+        "sourcemap": true,
+        "exclude": "aws-sdk",
+        "target": "node14",
+        "define": {
+          "require.resolve": "undefined"
+        },
+        "platform": "node",
+        "concurrency": 10
+      }
+    },
+    "plugins": [
+      "serverless-plugin-layers",
+      "serverless-offline",
+      "serverless-esbuild"
+    ],
+    "pluginsData": {},
+    "functions": {
+      "firstFunction": {
+        "handler": "firstFunction/handler.firstFunction",
+        "layers": {
+          "$ref": "$[\"service\"][\"provider\"][\"compiledCloudFormationTemplate\"][\"Resources\"][\"FirstFunctionLambdaFunction\"][\"Properties\"][\"Layers\"]"
+        },
+        "events": [],
+        "name": "my-service-dev-firstFunction",
+        "package": {
+          "patterns": []
+        },
+        "memory": 1024,
+        "timeout": 6,
+        "runtime": "nodejs14.x",
+        "vpc": {},
+        "versionLogicalId": "FirstFunctionLambdaVersion1m5866sLEECQp1PAs20GtKjZyEsSZCq6Arwq4o9E"
+      },
+      "secondFunction": {
+        "handler": "secondFunction/handler.secondFunction",
+        "layers": {
+          "$ref": "$[\"service\"][\"provider\"][\"compiledCloudFormationTemplate\"][\"Resources\"][\"SecondFunctionLambdaFunction\"][\"Properties\"][\"Layers\"]"
+        },
+        "events": [],
+        "name": "my-service-dev-secondFunction",
+        "package": {
+          "patterns": []
+        },
+        "memory": 1024,
+        "timeout": 6,
+        "runtime": "nodejs14.x",
+        "vpc": {},
+        "versionLogicalId": "SecondFunctionLambdaVersionkRc2hM70YA0fwk5HZswbUj9dZE7MykCQ5h6CkTkE"
+      }
+    },
+    "resources": {
+      "Outputs": {
+        "MyDashserviceDashdevDashnodejsDashdefaultLambdaLayerQualifiedArn": {
+          "Value": "arn:aws:lambda:us-east-1:412937381715:layer:my-service-dev-nodejs-default:12",
+          "Export": {
+            "Name": "MyDashserviceDashdevDashnodejsDashdefaultLambdaLayerQualifiedArn"
+          }
+        }
+      },
+      "Resources": {}
+    },
+    "configValidationMode": "warn",
+    "serviceFilename": "serverless.yml",
+    "initialServerlessConfig": {
+      "service": "my-service",
+      "provider": {
+        "$ref": "$[\"service\"][\"provider\"]"
+      },
+      "plugins": {
+        "$ref": "$[\"service\"][\"plugins\"]"
+      },
+      "custom": {
+        "$ref": "$[\"service\"][\"custom\"]"
+      },
+      "package": {
+        "patterns": [
+          "!node_modules/**",
+          "!venv/**",
+          "!apienv/**"
+        ],
+        "induvidually": true,
+        "artifactsS3KeyDirname": "serverless/my-service/dev/code-artifacts"
+      },
+      "layers": {
+        "firstLayer": {
+          "path": "firstLayer",
+          "package": {
+            "artifact": "C:\\serverless projects\\new-serverless-test\\.serverless\\firstLayer.zip"
+          },
+          "artifactAlreadyUploaded": true
+        },
+        "secondLayer": {
+          "path": "secondLayer",
+          "package": {
+            "artifact": "C:\\serverless projects\\new-serverless-test\\.serverless\\secondLayer.zip"
+          },
+          "artifactAlreadyUploaded": true
+        }
+      },
+      "functions": {
+        "$ref": "$[\"service\"][\"functions\"]"
+      }
+    },
+    "layers": {
+      "$ref": "$[\"service\"][\"initialServerlessConfig\"][\"layers\"]"
+    },
+    "isDashboardMonitoringPreconfigured": false
+  },
+  "package": {
+    "individually": false,
+    "artifactDirectoryName": "serverless/my-service/dev/1687865246548-2023-06-27T11:27:26.548Z",
+    "artifact": "my-service.zip"
+  }
+}
